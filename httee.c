@@ -25,6 +25,9 @@ get_log_file (char *domain)
 	c++;
     }
 
+    if ((c = strstr (domain, ":80")))
+	*c = '\0';
+
     for (int i = 0; i < outlog_size; i++)
 	if (0 == strcmp (domain, outlog[i].domain))
 	    return outlog[i].log;
