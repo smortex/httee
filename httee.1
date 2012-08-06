@@ -1,0 +1,28 @@
+.Dd August 6, 2012
+.Dt HTTEE 1
+.Os
+.Sh NAME
+.Nm httee
+.Nd HTTP log file splitting utility.
+.Sh SYNOPSIS
+.Nm
+.Ar
+.Sh DESCRIPTION
+The
+.Nm
+utility reads the provided HTTP log
+.Ar files
+and copy each HTTP request line to an appropriate file in the current directory
+with it's name based on the hostname of the HTTP request.
+.Pp
+The following 3 lines would produce 2 output files:
+.Ar sigabrt.org
+and
+.Ar romain.blogreen.org :
+.Bd -literal
+1.2.3.4 sigabrt.org - [05/Mar/2007:18:22:34 +0100] "GET / HTTP/1.1" 404 274 "-" "-"
+3.4.5.6 www.sigabrt.org - [31/Aug/2011:06:07:47 +0200] "GET / HTTP/1.1" 200 804 "-" "-"
+4.5.6.7 romain.blogreen.org - [02/Aug/2012:22:50:34 +0200] "GET / HTTP/1.1" 200 4961 "-" "-"
+.Ed
+.Sh AUTHORS
+.An Romain Tartière Aq romain@blogreen.org
