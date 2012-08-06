@@ -33,7 +33,7 @@ get_log_file (char *domain)
 	    return outlog[i].log;
 
     FILE *new_log;
-    if (!(new_log = fopen (domain, "a"))) {
+    if (!(new_log = fopen (domain, "w"))) {
 	warnx ("cannot open log file \"%s\" for writing.", domain);
 	return NULL;
     }
