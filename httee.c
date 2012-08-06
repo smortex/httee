@@ -28,6 +28,10 @@ get_log_file (char *domain)
     if ((c = strstr (domain, ":80")))
 	*c = '\0';
 
+    if ((domain == strstr (domain, "www."))) {
+	strcpy (domain, domain + 4);
+    }
+
     for (int i = 0; i < outlog_size; i++)
 	if (0 == strcmp (domain, outlog[i].domain))
 	    return outlog[i].log;
