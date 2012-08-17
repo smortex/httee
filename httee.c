@@ -30,7 +30,11 @@ get_log_file (char *domain, char *mode)
 	*c = '\0';
 
     if (domain == strstr (domain, "www.")) {
-	strcpy (domain, domain + 4);
+	char *src = domain + 4;
+	char *dst = domain;
+	while (*src)
+	    *dst++ = *src++;
+	*dst++ = *src++;
     }
 
     for (int i = 0; i < outlog_size; i++)
