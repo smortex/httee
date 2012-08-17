@@ -138,6 +138,8 @@ process_file (char *file_name, int skip_lines)
 		return -1;
 	    }
 	    parsed++;
+	} else {
+	    corrupted++;
 	}
 
     }
