@@ -1,8 +1,11 @@
+#include <sys/stat.h>
+
+#include <basedir.h>
 #include <ctype.h>
 #include <err.h>
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 struct outlog {
@@ -97,7 +100,7 @@ process_file (char *file_name, int skip_lines)
 	fprintf (stdout, "Direct access after line %d.\n", skip_lines);
 	while (skip_lines--) {
 	    if (!fgets (buffer, sizeof (buffer), f)) {
-		warnx ("%s: EOF reached after skipping %d (%d lines still to be skipped).", file_name, start, skip_lines);
+		warnx ("%s: EOF reached after skipping %d lines (%d lines still to be skipped).", file_name, start, skip_lines + 1);
 		return -1;
 	    }
 	    start++;
@@ -148,7 +151,82 @@ process_file (char *file_name, int skip_lines)
     fprintf (stdout, " Found %d old records,\n", start);
     fprintf (stdout, " Found %d new qualified records.\n", parsed);
 
-    return 0;
+    return end;
+}
+
+int
+config_read_file_skip_lines (const char *config_file, const char *file_name)
+{
+    FILE *config;
+    int skip_lines = 0;
+
+    char config_file_name[BUFSIZ];
+    char config_skip_line[BUFSIZ];
+
+    if ((config = fopen (config_file, "r"))) {
+	while (fgets (config_file_name, sizeof (config_file_name), config)) {
+	    if (fgets (config_skip_line, sizeof (config_skip_line), config)) {
+		config_file_name[strlen (config_file_name) -1] = '\0';
+		if (0 == strcmp (config_file_name, file_name)) {
+		    config_skip_line[strlen (config_skip_line) -1] = '\0';
+		    if (1 != sscanf (config_skip_line, "%d", &skip_lines))
+			warnx ("Invalid line number \"%s\" for file \"%s\" in configuration file \"%s\".", config_skip_line, config_file_name, config_file);
+		    break;
+		}
+	    } else {
+		warnx ("Malformed configuration file \"%s\".", config_file);
+	    }
+	}
+	fclose (config);
+    }
+    return skip_lines;
+}
+
+int
+config_write_file_skip_lines (const char *config_file, const char *file_name, int skip_lines)
+{
+    int ret = 0;
+    int wrote = 0;
+
+    char tmp[BUFSIZ];
+    snprintf (tmp, sizeof (tmp), "%s~", config_file);
+
+    FILE *src, *dst;
+    char config_file_name[BUFSIZ];
+    char config_skip_line[BUFSIZ];
+
+    if ((dst = fopen (tmp, "w"))) {
+	if ((src = fopen (config_file, "r"))) {
+	    while (fgets (config_file_name, sizeof (config_file_name), src)) {
+		if (fgets (config_skip_line, sizeof (config_skip_line), src)) {
+		    config_file_name[strlen (config_file_name) -1] = '\0';
+		    if (0 == strcmp (config_file_name, file_name)) {
+			snprintf (config_skip_line, sizeof (config_skip_line), "%d\n", skip_lines);
+			wrote = 1;
+		    }
+		    if (fprintf (dst, "%s\n%s", config_file_name, config_skip_line) < 0) {
+			warn ("Error writing to \"%s\".", config_file);
+			ret = -1;
+			break;
+		    }
+		} else {
+		    warnx ("Malformed configuration file \"%s\".", config_file);
+		}
+	    }
+
+	    fclose (src);
+	}
+	if (!wrote) {
+	    fprintf (dst, "%s\n%d\n", file_name, skip_lines);
+	}
+	fclose (dst);
+    }
+
+    if (ret >= 0)
+	if (rename (tmp, config_file) < 0)
+	    perror ("rename");
+
+    return ret;
 }
 
 void
@@ -187,9 +265,25 @@ main (int argc, char *argv[])
     if (argc > 1 && skip_lines > 0)
 	errx (EXIT_FAILURE, "option \"-s\" cannot be used with multiple input files.");
 
+    xdgHandle xdg_handle;
+    xdgInitHandle (&xdg_handle);
+    const char *xdg_data_home = xdgDataHome (&xdg_handle);
+
+    char config[BUFSIZ];
+    snprintf (config, sizeof (config), "%s/httee", xdg_data_home);
+    mkdir (config, 0777);
+
+    snprintf (config, sizeof (config), "%s/httee/positions", xdg_data_home);
+
     for (int i = 0; i < argc; i++) {
-	if (process_file (argv[i], skip_lines) < 0)
+	char *path = realpath (argv[i], NULL);
+	if (!skip_lines)
+	    skip_lines = config_read_file_skip_lines (config, path);
+	if ((skip_lines = process_file (path, skip_lines)) < 0)
 	    exit (EXIT_FAILURE);
+	config_write_file_skip_lines (config, path, skip_lines);
+	free (path);
     }
+    xdgWipeHandle (&xdg_handle);
     exit (EXIT_SUCCESS);
 }
