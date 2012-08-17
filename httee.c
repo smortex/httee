@@ -59,9 +59,12 @@ int
 close_log_files (void)
 {
     for (int i = 0; i < outlog_size; i++) {
-	if (fclose (outlog[i].log) < 0)
-	    return -1;
+	fclose (outlog[i].log);
+	free (outlog[i].domain);
     }
+    free (outlog);
+    outlog = NULL;
+    outlog_size = 0;
     return 0;
 }
 
