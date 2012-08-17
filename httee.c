@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 struct outlog {
     char *domain;
@@ -13,7 +14,7 @@ struct outlog *outlog = NULL;
 int outlog_size = 0;
 
 FILE *
-get_log_file (char *domain)
+get_log_file (char *domain, char *mode)
 {
     char *c = domain;
     while (*c) {
@@ -28,7 +29,7 @@ get_log_file (char *domain)
     if ((c = strstr (domain, ":80")))
 	*c = '\0';
 
-    if ((domain == strstr (domain, "www."))) {
+    if (domain == strstr (domain, "www.")) {
 	strcpy (domain, domain + 4);
     }
 
@@ -37,7 +38,7 @@ get_log_file (char *domain)
 	    return outlog[i].log;
 
     FILE *new_log;
-    if (!(new_log = fopen (domain, "w"))) {
+    if (!(new_log = fopen (domain, mode))) {
 	warnx ("cannot open log file \"%s\" for writing.", domain);
 	return NULL;
     }
@@ -65,28 +66,48 @@ close_log_files (void)
 }
 
 int
-process_file (char *file_name)
+process_file (char *file_name, int skip_lines)
 {
     FILE *f;
     char buffer[1024 * 4];
+    char *mode = "w";
+
+    int start = 0;
+    int end = 0;
 
     if (!(f = fopen (file_name, "r"))) {
 	perror ("fopen");
 	return -1;
     }
 
+    if (skip_lines) {
+	while (skip_lines--) {
+	    if (!fgets (buffer, sizeof (buffer), f)) {
+		warnx ("%s: EOF reached after skipping %d (%d lines still to be skipped).", file_name, start, skip_lines);
+		return -1;
+	    }
+	    start++;
+	}
+
+	mode = "a";
+    }
+
+    end = start;
+
     while (fgets (buffer, sizeof (buffer), f)) {
 	char ip[BUFSIZ];
 	char hostname[BUFSIZ];
 
+	end++;
+
 	if (sscanf (buffer, "%s %s", ip, hostname) != 2) {
-	    warnx ("Malformed line: %s", buffer);
+	    warnx ("%s: line %d is malformed: %s", file_name, end, buffer);
 	    continue;
 	}
 
 	FILE *log;
 
-	if ((log = get_log_file (hostname))) {
+	if ((log = get_log_file (hostname, mode))) {
 	    if (fprintf (log, "%s", buffer) < 0) {
 		perror ("fprintf");
 		return -1;
@@ -101,11 +122,44 @@ process_file (char *file_name)
     return 0;
 }
 
+void
+usage (void)
+{
+    fprintf (stderr, "usage: httee [-s lines] [file...]\n");
+}
+
 int
 main (int argc, char *argv[])
 {
-    for (int i = 1; i <= argc - 1; i++) {
-	if (process_file (argv[i]) < 0)
+    int ch;
+    int skip_lines = 0;
+
+    while ((ch = getopt (argc, argv, "hs:")) != -1) {
+	switch (ch) {
+	case 's':
+	    if (1 != sscanf (optarg, "%d", &skip_lines))
+		errx (EXIT_FAILURE, "%s: not a number.", optarg);
+	    break;
+	case 'h':
+	    usage ();
+	    exit (EXIT_SUCCESS);
+	    break;
+	case '?':
+	    /* FALLTHROUGH */
+	default:
+	    usage ();
+	    exit (EXIT_FAILURE);
+	    break;
+	}
+    }
+    argc -= optind;
+    argv += optind;
+
+    if (argc > 1 && skip_lines > 0)
+	errx (EXIT_FAILURE, "option \"-s\" cannot be used with multiple input files.");
+
+    for (int i = 0; i < argc; i++) {
+	if (process_file (argv[i], skip_lines) < 0)
 	    exit (EXIT_FAILURE);
     }
     exit (EXIT_SUCCESS);
