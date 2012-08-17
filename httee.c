@@ -75,12 +75,19 @@ process_file (char *file_name, int skip_lines)
     int start = 0;
     int end = 0;
 
+    int blank = 0;
+    int corrupted = 0;
+    int parsed = 0;
+
+    fprintf (stdout, "Processing file \"%s\".\n", file_name);
+
     if (!(f = fopen (file_name, "r"))) {
 	perror ("fopen");
 	return -1;
     }
 
     if (skip_lines) {
+	fprintf (stdout, "Direct access after line %d.\n", skip_lines);
 	while (skip_lines--) {
 	    if (!fgets (buffer, sizeof (buffer), f)) {
 		warnx ("%s: EOF reached after skipping %d (%d lines still to be skipped).", file_name, start, skip_lines);
@@ -88,6 +95,9 @@ process_file (char *file_name, int skip_lines)
 	    }
 	    start++;
 	}
+
+	fprintf (stdout, "Jumped lines in file: %d\n", start);
+	fprintf (stdout, " Found %d already parsed records.\n", start);
 
 	mode = "a";
     }
@@ -100,8 +110,13 @@ process_file (char *file_name, int skip_lines)
 
 	end++;
 
+	if (buffer[0] == '\n') {
+	    blank++;
+	    continue;
+	}
+
 	if (sscanf (buffer, "%s %s", ip, hostname) != 2) {
-	    warnx ("%s: line %d is malformed: %s", file_name, end, buffer);
+	    corrupted++;
 	    continue;
 	}
 
@@ -112,12 +127,19 @@ process_file (char *file_name, int skip_lines)
 		perror ("fprintf");
 		return -1;
 	    }
+	    parsed++;
 	}
 
     }
 
     close_log_files ();
     fclose (f);
+
+    fprintf (stdout, "Parsed lines in file: %d\n", end);
+    fprintf (stdout, " Found %d blank records,\n", blank);
+    fprintf (stdout, " Found %d corrupted records,\n", corrupted);
+    fprintf (stdout, " Found %d old records,\n", start);
+    fprintf (stdout, " Found %d new qualified records.\n", parsed);
 
     return 0;
 }
