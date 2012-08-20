@@ -94,7 +94,7 @@ process_file (const char const *file_name, int skip_lines)
     if (!file_name) {
 	fprintf (stdout, "Processing <stdin>.\n");
 	file_name = stdin_name;
-	f = stdin;
+	f = fdopen (dup (0), "r");
     } else {
 	fprintf (stdout, "Processing file \"%s\".\n", file_name);
 
