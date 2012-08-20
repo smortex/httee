@@ -307,6 +307,7 @@ main (int argc, char *argv[])
 	if (write_config)
 	    config_write_file_skip_lines (config, path, skip_lines);
 	free (path);
+	skip_lines = 0;
     }
     xdgWipeHandle (&xdg_handle);
     exit (EXIT_SUCCESS);
