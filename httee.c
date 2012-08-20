@@ -17,7 +17,7 @@ struct outlog *outlog = NULL;
 int outlog_size = 0;
 
 FILE *
-get_log_file (char *domain, char *mode)
+get_log_file (char *domain, const char *mode)
 {
     char *c = domain;
     while (*c) {
@@ -76,7 +76,7 @@ close_log_files (void)
 }
 
 int
-process_file (char *file_name, int skip_lines)
+process_file (const char const *file_name, int skip_lines)
 {
     FILE *f;
     char buffer[1024 * 4];
@@ -89,11 +89,19 @@ process_file (char *file_name, int skip_lines)
     int corrupted = 0;
     int parsed = 0;
 
-    fprintf (stdout, "Processing file \"%s\".\n", file_name);
+    const char *stdin_name = "<stdin>";
 
-    if (!(f = fopen (file_name, "r"))) {
-	perror ("fopen");
-	return -1;
+    if (!file_name) {
+	fprintf (stdout, "Processing <stdin>.\n");
+	file_name = stdin_name;
+	f = stdin;
+    } else {
+	fprintf (stdout, "Processing file \"%s\".\n", file_name);
+
+	if (!(f = fopen (file_name, "r"))) {
+	    perror ("fopen");
+	    return -1;
+	}
     }
 
     if (skip_lines) {
@@ -234,7 +242,7 @@ config_write_file_skip_lines (const char *config_file, const char *file_name, in
 void
 usage (void)
 {
-    fprintf (stderr, "usage: httee [-s lines] [file...]\n");
+    fprintf (stderr, "usage: httee  [-RW] [-s lines] [file...]\n");
 }
 
 int
@@ -242,8 +250,9 @@ main (int argc, char *argv[])
 {
     int ch;
     int skip_lines = 0;
+    int read_config = 1, write_config = 1;
 
-    while ((ch = getopt (argc, argv, "hs:")) != -1) {
+    while ((ch = getopt (argc, argv, "hRs:W")) != -1) {
 	switch (ch) {
 	case 's':
 	    if (1 != sscanf (optarg, "%d", &skip_lines))
@@ -252,6 +261,12 @@ main (int argc, char *argv[])
 	case 'h':
 	    usage ();
 	    exit (EXIT_SUCCESS);
+	    break;
+	case 'R':
+	    read_config = 0;
+	    break;
+	case 'W':
+	    write_config = 0;
 	    break;
 	case '?':
 	    /* FALLTHROUGH */
@@ -279,11 +294,18 @@ main (int argc, char *argv[])
 
     for (int i = 0; i < argc; i++) {
 	char *path = realpath (argv[i], NULL);
-	if (!skip_lines)
+	if (!path) {
+	    if (0 != strcmp ("-", argv[i])) {
+		err (EXIT_FAILURE, "realpath(\"%s\")", argv[i]);
+	    }
+	    read_config = write_config = 0;
+	}
+	if (read_config && !skip_lines)
 	    skip_lines = config_read_file_skip_lines (config, path);
 	if ((skip_lines = process_file (path, skip_lines)) < 0)
 	    exit (EXIT_FAILURE);
-	config_write_file_skip_lines (config, path, skip_lines);
+	if (write_config)
+	    config_write_file_skip_lines (config, path, skip_lines);
 	free (path);
     }
     xdgWipeHandle (&xdg_handle);
