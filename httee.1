@@ -6,23 +6,69 @@
 .Nd HTTP log file splitting utility.
 .Sh SYNOPSIS
 .Nm
+.Op Fl RW
+<
+.Fl s Ar number
+.Ar file
+|
 .Ar
+>
 .Sh DESCRIPTION
 The
 .Nm
-utility reads the provided HTTP log
-.Ar files
-and copy each HTTP request line to an appropriate file in the current directory
-with it's name based on the hostname of the HTTP request.
+utility process each provided HTTP log
+.Ar file
+and copy each HTTP request line to an appropriate file in the current directory.
+The file name is based on the hostname of the HTTP request, with the
+.Ar www.
+prefix and the
+.Ar :port
+suffix stripped if they are found.
 .Pp
-The following 3 lines would produce 2 output files:
-.Ar sigabrt.org
+The special
+.Ar file
+"-" can be used to read input from
+.Va stdin .
+.Pp
+The options are as follows:
+.Bl -tag -width ".Fl -s Ar number"
+.It Fl R
+Do not read the saved number of lines to skip for reading
+.Ar file
+(see
+.Fl W
+flag bellow).
+.It Fl W
+Do not save the number of lines to skip on the next run of
+.Nm
+on
+.Ar file .
+.It Fl s Ar number
+Skip the
+.Ar number
+first lines in
+.Ar file .
+Imply
+.Fl R
 and
-.Ar romain.blogreen.org :
+.Fl W .
+.El
+.Sh FILES
+.Bl -tag -width "$XDG_DATA_HOME/httee/positions"
+.It $XDG_DATA_HOME/httee/positions
+Location where the number of proceeded lines in each file are stored.
+.El
+.Sh EXAMPLES
+The following 3 lines would produce 2 output files:
+.Ar example.com
+(containing the first line)
+and
+.Ar example.net
+(containing the 2 other lines):
 .Bd -literal
-1.2.3.4 sigabrt.org - [05/Mar/2007:18:22:34 +0100] "GET / HTTP/1.1" 404 274 "-" "-"
-3.4.5.6 www.sigabrt.org - [31/Aug/2011:06:07:47 +0200] "GET / HTTP/1.1" 200 804 "-" "-"
-4.5.6.7 romain.blogreen.org - [02/Aug/2012:22:50:34 +0200] "GET / HTTP/1.1" 200 4961 "-" "-"
+192.0.2.23 example.com - [05/Mar/2007:18:22:34 +0100] "GET / HTTP/1.1" 200 274 "-" "-"
+198.51.100.42 www.example.net - [31/Aug/2011:06:07:47 +0200] "GET / HTTP/1.1" 200 804 "-" "-"
+203.0.113.2 example.net - [02/Aug/2012:22:50:34 +0200] "GET / HTTP/1.1" 200 4961 "-" "-"
 .Ed
 .Sh AUTHORS
 .An Romain Tartière Aq romain@blogreen.org

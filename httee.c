@@ -242,7 +242,7 @@ config_write_file_skip_lines (const char *config_file, const char *file_name, in
 void
 usage (void)
 {
-    fprintf (stderr, "usage: httee  [-RW] [-s lines] [file...]\n");
+    fprintf (stderr, "usage: httee  [-RW] < -s number file | file ... >\n");
 }
 
 int
