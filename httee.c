@@ -1,4 +1,6 @@
-#include "config.h"
+#if defined(HAVE_CONFIG_H)
+#  include "config.h"
+#endif
 
 #include <sys/stat.h>
 
@@ -244,7 +246,7 @@ config_write_file_skip_lines (const char *config_file, const char *file_name, in
 void
 usage (void)
 {
-    fprintf (stderr, "usage: httee  [-RW] < -s number file | file ... >\n");
+    fprintf (stderr, "usage: " PACKAGE_NAME "  [-RW] < -s number file | file ... >\n");
 }
 
 int
@@ -254,7 +256,7 @@ main (int argc, char *argv[])
     int skip_lines = 0;
     int read_config = 1, write_config = 1;
 
-    while ((ch = getopt (argc, argv, "hRs:W")) != -1) {
+    while ((ch = getopt (argc, argv, "hRs:vW")) != -1) {
 	switch (ch) {
 	case 's':
 	    if (1 != sscanf (optarg, "%d", &skip_lines))
@@ -267,6 +269,9 @@ main (int argc, char *argv[])
 	case 'R':
 	    read_config = 0;
 	    break;
+	case 'v':
+	    fprintf (stderr, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+	    exit (EXIT_SUCCESS);
 	case 'W':
 	    write_config = 0;
 	    break;
@@ -289,10 +294,10 @@ main (int argc, char *argv[])
     const char *xdg_data_home = xdgDataHome (&xdg_handle);
 
     char config[BUFSIZ];
-    snprintf (config, sizeof (config), "%s/httee", xdg_data_home);
+    snprintf (config, sizeof (config), "%s/" PACKAGE_NAME, xdg_data_home);
     mkdir (config, 0777);
 
-    snprintf (config, sizeof (config), "%s/httee/positions", xdg_data_home);
+    snprintf (config, sizeof (config), "%s/" PACKAGE_NAME "/positions", xdg_data_home);
 
     for (int i = 0; i < argc; i++) {
 	char *path = realpath (argv[i], NULL);
