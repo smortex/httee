@@ -19,7 +19,10 @@ The
 utility process each provided HTTP log
 .Ar file
 and copy each HTTP request line to an appropriate file in the current directory.
-The file name is based on the hostname of the HTTP request, with the
+The file name is based on the hostname of the HTTP request (read from the second
+field of each record, refer to the
+.Ar PREREQUISITES
+section bellow), with the
 .Ar www.
 prefix and the
 .Ar :port
@@ -53,6 +56,23 @@ Imply
 and
 .Fl W .
 .El
+.Sh PREREQUISITES
+Requests hostname shall be made available as the second field of HTTP requests.
+This field was historically used for remote logname but is usually blank
+nowadays and can be safely replaced with more useful information.
+.Pp
+When using the
+.Xr httpd 1
+web server, the custom log format
+.Ar %l
+can be replaced with
+.Ar %v
+to achieve this. The
+.Ar combined
+LogFormat can be changed this way:
+.Bd -literal
+LogFormat "%h %v %u %t \\"%r\\" %>s %b \\"%{Referer}i\\" \\"%{User-Agent}i\\"" combined
+.Ed
 .Sh FILES
 .Bl -tag -width "$XDG_DATA_HOME/httee/positions"
 .It $XDG_DATA_HOME/httee/positions
