@@ -66,12 +66,12 @@ When using the
 web server, the custom log format
 .Ar %l
 can be replaced with
-.Ar %v
+.Ar %V
 to achieve this. The
 .Ar combined
 LogFormat can be changed this way:
 .Bd -literal
-LogFormat "%h %v %u %t \\"%r\\" %>s %b \\"%{Referer}i\\" \\"%{User-Agent}i\\"" combined
+LogFormat "%h %V %u %t \\"%r\\" %>s %b \\"%{Referer}i\\" \\"%{User-Agent}i\\"" combined
 .Ed
 .Sh FILES
 .Bl -tag -width "$XDG_DATA_HOME/httee/positions"
